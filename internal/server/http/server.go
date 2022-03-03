@@ -1,16 +1,37 @@
 package http
 
 import (
+	"flag"
+	"log"
 	"net/http"
 	"time"
 	"tools-home/internal/conf"
 	"tools-home/internal/model"
 	"tools-home/internal/service"
 
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/ratelimit"
 )
 
-var svc *service.Service
+var (
+	svc   *service.Service
+	limit ratelimit.Limiter
+	rps   int
+)
+
+func init() {
+	flag.IntVar(&rps, "rps", 100, "request per second")
+}
+
+func leakBucket() gin.HandlerFunc {
+	prev := time.Now()
+	return func(ctx *gin.Context) {
+		now := limit.Take()
+		log.Print(color.CyanString("%v", now.Sub(prev)))
+		prev = now
+	}
+}
 
 // New new a bm server.
 func New(s *service.Service) (engine *http.Server, err error) {
@@ -19,12 +40,15 @@ func New(s *service.Service) (engine *http.Server, err error) {
 		ReadTimeout  time.Duration
 		WriteTimeout time.Duration
 	}
+	limit = ratelimit.New(rps)
+
 	if err = conf.Load("http.json", &cfg); err != nil {
 		return
 	}
 	svc = s
 
 	router := gin.Default()
+	router.Use(leakBucket())
 	initRouter(router)
 	engine = &http.Server{
 		Addr:         cfg.Addr,
@@ -43,8 +67,8 @@ func New(s *service.Service) (engine *http.Server, err error) {
 
 func initRouter(r *gin.Engine) {
 	r.GET("/monitor/ping", ping)
-	g := r.Group("/tools-home")
 	{
+		g := r.Group("/tools-home")
 		g.GET("/start", howToStart)
 	}
 }
