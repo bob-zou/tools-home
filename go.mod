@@ -6,7 +6,9 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis/v8 v8.11.4
+	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/google/wire v0.3.0
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/toolkits/file v0.0.0-20160325033739-a5b3c5147e07

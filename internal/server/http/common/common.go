@@ -1,13 +1,13 @@
-package http
+package common
 
 type ResponseCode int
 
 const (
-	ResponseCodeOK = iota
-	ResponseCodeErr
+	ReplyCodeOK = iota
+	ReplyCodeErr
 )
 
-type CommonResponse struct {
+type Reply struct {
 	Code ResponseCode `json:"code"`
 	Msg  string       `json:"msg"`
 	Data interface{}  `json:"data"`
