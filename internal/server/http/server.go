@@ -82,7 +82,10 @@ func initRouter(r *gin.Engine) {
 
 	{
 		g := v1.Group("/math")
-		g.GET("/primary/grade1", grade1.RandomQuestions)
+		g.GET("/primary/grade1/base", grade1.RandomBaseQuestions)
+		g.GET("/primary/grade1/base2", grade1.RandomBase2Questions)
+		g.GET("/primary/grade1/advanced", grade1.RandomBaseQuestions)
+		g.GET("/primary/grade1/advanced2", grade1.RandomBaseQuestions)
 	}
 }
 

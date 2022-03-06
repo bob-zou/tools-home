@@ -33,14 +33,52 @@ func (t *Tuple) Question(op string) string {
 	return fmt.Sprintf("%2d - %2d = %6s", t.C, t.A, "______")
 }
 
-func GetTuples(max int, withZero bool) (tuples []*Tuple) {
+func (t *Tuple) Question2(op string) string {
+	sel := rand.Intn(3)
+	switch sel {
+	case 1:
+		if op == "+" {
+			return fmt.Sprintf("%2d + %6s = %2d", t.A, "______", t.C)
+		}
+		return fmt.Sprintf("%2d - %6s = %2d", t.C, "______", t.A)
+	case 2:
+		if op == "+" {
+			return fmt.Sprintf("%6s + %2d = %2d", "______", t.B, t.C)
+		}
+		return fmt.Sprintf("%6s - %2d = %2d", "______", t.B, t.A)
+	default:
+		if op == "+" {
+			return fmt.Sprintf("%2d + %2d = %6s", t.A, t.B, "______")
+		}
+		return fmt.Sprintf("%2d - %2d = %6s", t.C, t.A, "______")
+	}
+}
+
+func queryIntDefaultMax(c *gin.Context, key string, def, max int) int {
+	v, ok := c.GetQuery(key)
+	if !ok {
+		return def
+	}
+	vi, err := strconv.Atoi(v)
+	if err != nil {
+		return def
+	}
+
+	if vi > max {
+		return max
+	}
+
+	return vi
+}
+
+func getTuples(max int, withZero bool) (tuples []*Tuple) {
 	start := 1
 	if withZero {
 		start = 0
 	}
 	for i := start; i < max; i++ {
 		for j := i; j < max; j++ {
-			if i+j < max {
+			if i+j <= max {
 				tuples = append(tuples, &Tuple{
 					A: i,
 					B: j,
@@ -53,7 +91,7 @@ func GetTuples(max int, withZero bool) (tuples []*Tuple) {
 	return
 }
 
-func randomQuestion(tuples []*Tuple, used map[string]struct{}) string {
+func randomOneBaseQuestion(tuples []*Tuple, used map[string]struct{}) string {
 	var (
 		index int
 		op    string
@@ -77,60 +115,108 @@ func randomQuestion(tuples []*Tuple, used map[string]struct{}) string {
 	return tuples[index].Question(op)
 }
 
-func generatePdf(pageSize, max int, name string) {
+func randomOneBase2Question(tuples []*Tuple, used map[string]struct{}) string {
+	var (
+		index int
+		op    string
+	)
+
+	for {
+		i := rand.Intn(len(tuples))
+		o := "+"
+		if rand.Intn(2) == 0 {
+			o = "-"
+		}
+		k := fmt.Sprintf("%d-%s", i, o)
+		if _, ok := used[k]; ok {
+			continue
+		}
+		index, op = i, o
+		used[k] = struct{}{}
+		break
+	}
+
+	return tuples[index].Question2(op)
+}
+
+func generatePdf(questions map[int][]string, name string) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(10, 15, 10)
-	pdf.SetFont("Arial", "B", 16)
+	pdf.SetFont("Arial", "B", 14)
 
-	rand.Seed(time.Now().UnixMilli())
-
-	tuples := GetTuples(max, false)
-
-	page := 1
-	for {
-		pdf.AddPage()
+	for _, qs := range questions {
 		count := 0
-		used := map[string]struct{}{}
-		for {
-			pdf.Cell(47.5, 12, randomQuestion(tuples, used))
+		pdf.AddPage()
+		for _, q := range qs {
+			pdf.Cell(47.5, 12, q)
 			if count%4 == 3 {
 				pdf.LineTo(10, 15+10*(math.Ceil(float64(count/4))+1))
 			}
-
 			count++
-			if count >= 100 {
-				break
-			}
-		}
-		page++
-		if page > pageSize {
-			break
 		}
 	}
 	_ = pdf.OutputFileAndClose(name)
 }
 
-func queryIntDefaultMax(c *gin.Context, key string, def, max int) int {
-	v, ok := c.GetQuery(key)
-	if !ok {
-		return def
-	}
-	vi, err := strconv.Atoi(v)
-	if err != nil {
-		return def
-	}
+func randomBaseQuestions(page, max int) (questions map[int][]string) {
+	var (
+		cur    = 1
+		tuples = getTuples(max, false)
+	)
 
-	if vi > max {
-		return max
+	rand.Seed(time.Now().UnixMilli())
+	questions = make(map[int][]string, page)
+	for {
+		count := 0
+		used := map[string]struct{}{}
+		questions[cur] = make([]string, 0, 100)
+		for {
+			questions[cur] = append(questions[cur], randomOneBaseQuestion(tuples, used))
+			count++
+			if count >= 100 {
+				break
+			}
+		}
+		cur++
+		if cur > page {
+			break
+		}
 	}
-
-	return vi
+	return
 }
 
-func RandomQuestions(c *gin.Context) {
+func randomBase2Questions(page, max int) (questions map[int][]string) {
 	var (
-		page = queryIntDefaultMax(c, "page", 10, 100)
-		max  = queryIntDefaultMax(c, "max", 20, 100)
+		cur    = 1
+		tuples = getTuples(max, false)
+	)
+
+	rand.Seed(time.Now().UnixMilli())
+	questions = make(map[int][]string, page)
+	for {
+		count := 0
+		used := map[string]struct{}{}
+		questions[cur] = make([]string, 0, 100)
+		for {
+			questions[cur] = append(questions[cur], randomOneBase2Question(tuples, used))
+			count++
+			if count >= 100 {
+				break
+			}
+		}
+		cur++
+		if cur > page {
+			break
+		}
+	}
+	return
+}
+
+func RandomBaseQuestions(c *gin.Context) {
+	var (
+		page      = queryIntDefaultMax(c, "page", 10, 100)
+		max       = queryIntDefaultMax(c, "max", 20, 100)
+		questions = randomBaseQuestions(page, max)
 	)
 
 	file, err := ioutil.TempFile("", "question-")
@@ -139,8 +225,25 @@ func RandomQuestions(c *gin.Context) {
 		return
 	}
 
-	generatePdf(page, max, file.Name())
+	generatePdf(questions, file.Name())
 	c.FileAttachment(file.Name(), url.QueryEscape(fmt.Sprintf("%d以内加减法-%d套-%d.pdf", max, page, time.Now().Unix())))
 	defer func() { _ = os.RemoveAll(file.Name()) }()
-	//c.JSON(http.StatusOK, common.Reply{Data: "ok"})
+}
+
+func RandomBase2Questions(c *gin.Context) {
+	var (
+		page      = queryIntDefaultMax(c, "page", 10, 100)
+		max       = queryIntDefaultMax(c, "max", 20, 100)
+		questions = randomBase2Questions(page, max)
+	)
+
+	file, err := ioutil.TempFile("", "question-")
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	generatePdf(questions, file.Name())
+	c.FileAttachment(file.Name(), url.QueryEscape(fmt.Sprintf("%d以内加减法-%d套-%d.pdf", max, page, time.Now().Unix())))
+	defer func() { _ = os.RemoveAll(file.Name()) }()
 }
