@@ -74,18 +74,14 @@ func initRouter(r *gin.Engine) {
 		g := v1.Group("/time-converter")
 		g.GET("", howToStart)
 	}
-
 	{
 		g := v1.Group("/uuid-v4")
 		g.GET("", generateUuid)
 	}
-
 	{
 		g := v1.Group("/math")
-		g.GET("/primary/grade1/base", grade1.RandomBaseQuestions)
-		g.GET("/primary/grade1/base2", grade1.RandomBase2Questions)
-		g.GET("/primary/grade1/advanced", grade1.RandomBaseQuestions)
-		g.GET("/primary/grade1/advanced2", grade1.RandomBaseQuestions)
+		g.GET("/primary/grade1", grade1.Bit2Questions)
+		g.GET("/primary/grade1/base", grade1.Bit2Questions)
 	}
 }
 
