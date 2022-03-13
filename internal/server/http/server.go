@@ -80,8 +80,9 @@ func initRouter(r *gin.Engine) {
 	}
 	{
 		g := v1.Group("/math")
-		g.GET("/primary/grade1", grade1.Bit2Questions)
-		g.GET("/primary/grade1/base", grade1.Bit2Questions)
+		g.GET("/primary/grade1", grade1.Questions)
+		g.GET("/primary/grade1/base", grade1.Questions)
+		g.GET("/primary/grade1/advance", grade1.Questions)
 	}
 }
 

@@ -66,6 +66,13 @@ func generatePdf(pages [][][]string) (filename string) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(10, 15, 10)
 	pdf.SetFont("Arial", "B", 14)
+	pdf.SetAuthor("tools-bin.com", true)
+
+	pdf.SetFooterFunc(func() {
+		pdf.SetY(-20)
+		pdf.SetFont("Arial", "I", 10)
+		pdf.CellFormat(0, 10, fmt.Sprintf("go to tools-bin.com for more tools"), "", 0, "C", false, 0, "https://www.tools-bin.com")
+	})
 
 	for _, page := range pages {
 		pdf.AddPage()
@@ -87,7 +94,7 @@ func generatePdf(pages [][][]string) (filename string) {
 	return
 }
 
-func Bit2Questions(c *gin.Context) {
+func Questions(c *gin.Context) {
 	var (
 		page  = queryIntDefaultMax(c, "page", 10, 100)
 		max   = queryIntDefaultMax(c, "max", 20, 100)
