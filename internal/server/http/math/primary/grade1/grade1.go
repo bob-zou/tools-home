@@ -96,7 +96,7 @@ func generatePdf(pages [][][]string) (filename string) {
 
 func Questions(c *gin.Context) {
 	var (
-		page  = queryIntDefaultMax(c, "page", 10, 100)
+		page  = queryIntDefaultMax(c, "page", 5, 20)
 		max   = queryIntDefaultMax(c, "max", 20, 100)
 		qType = queryIntDefault(c, "type", 0)
 		bit   = queryIntDefault(c, "bit", 2)

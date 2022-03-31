@@ -1,8 +1,10 @@
 package pmath
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 	"tools-home/internal/service/utils"
 )
@@ -15,12 +17,27 @@ const (
 )
 
 var (
-	_bit2Questions map[int][]*Bit2Question
-	_bit3Questions map[int][]*Bit3Question
+	_bit2Questions       = make(map[int][]*Bit2Question) // map[max]...
+	_bit2StringQuestions = make(map[int]map[QType][]string)
+	_bit3Questions       = make(map[int][]*Bit3Question)
+	_bit3StringQuestions = make(map[int]map[QType][]string)
 )
 
 func init() {
 	rand.Seed(time.Now().UnixMilli())
+}
+
+func questionString(args ...interface{}) string {
+	var buffer bytes.Buffer
+	for _, a := range args {
+		switch v := a.(type) {
+		case int:
+			buffer.WriteString(strconv.Itoa(v))
+		case string:
+			buffer.WriteString(v)
+		}
+	}
+	return buffer.String()
 }
 
 type QBank interface {
@@ -42,6 +59,9 @@ func NewQBank(bit int) QBank {
 type Q2Bank struct{}
 
 func (q *Q2Bank) RandomQuestions(max int, qts ...QType) [][]string {
+	defer func(start time.Time) {
+		fmt.Printf("Q2Bank cost: %dms\n", time.Since(start).Milliseconds())
+	}(time.Now())
 	var (
 		column, row = 4, 25
 		page        [][]string
@@ -139,10 +159,16 @@ func generateB2Qs(max int) []*Bit2Question {
 		}
 	}
 
+	_bit2Questions[max] = b2qs
+
 	return b2qs
 }
 
 func generateB2Questions(max int) map[QType][]string {
+	if b2Questions, ok := _bit2StringQuestions[max]; ok {
+		return b2Questions
+	}
+
 	b2qs := generateB2Qs(max)
 	b2Questions := make(map[QType][]string)
 	for _, b2q := range b2qs {
@@ -169,56 +195,56 @@ func (b3 *Bit3Question) Questions(qts ...QType) map[QType][]string {
 	if len(qts) == 0 || utils.SliceContains(qts, QTypeNormal) {
 		// A == B == C
 		ret[QTypeNormal] = []string{
-			fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.B, b3.C, "______"),
-			fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.B, "______"),
+			questionString(b3.A, " + ", b3.B, " + ", b3.C, " = ", "______"),
+			questionString(b3.Z, " - ", b3.A, " - ", b3.B, " = ", "______"),
 		}
 
 		if b3.A != b3.B && b3.B != b3.C && b3.A != b3.C {
 			ret[QTypeNormal] = []string{
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.B, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.C, b3.B, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.B, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.B, b3.C, b3.A, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.C, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.C, b3.B, b3.A, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.B, b3.A, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.B, b3.C, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.C, b3.A, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.C, b3.B, "______"),
+				questionString(b3.A, " + ", b3.B, " + ", b3.C, " = ", "______"),
+				questionString(b3.A, " + ", b3.C, " + ", b3.B, " = ", "______"),
+				questionString(b3.B, " + ", b3.A, " + ", b3.C, " = ", "______"),
+				questionString(b3.B, " + ", b3.C, " + ", b3.A, " = ", "______"),
+				questionString(b3.C, " + ", b3.A, " + ", b3.B, " = ", "______"),
+				questionString(b3.C, " + ", b3.B, " + ", b3.A, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.B, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.C, " = ", "______"),
+				questionString(b3.Z, " - ", b3.B, " - ", b3.A, " = ", "______"),
+				questionString(b3.Z, " - ", b3.B, " - ", b3.C, " = ", "______"),
+				questionString(b3.Z, " - ", b3.C, " - ", b3.A, " = ", "______"),
+				questionString(b3.Z, " - ", b3.C, " - ", b3.B, " = ", "______"),
 			}
 		}
 		if b3.A != b3.B && b3.B == b3.C {
 			ret[QTypeNormal] = []string{
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.B, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.B, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.B, b3.C, b3.A, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.B, b3.A, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.B, b3.C, "______"),
+				questionString(b3.A, " + ", b3.B, " + ", b3.C, " = ", "______"),
+				questionString(b3.B, " + ", b3.A, " + ", b3.C, " = ", "______"),
+				questionString(b3.B, " + ", b3.C, " + ", b3.A, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.B, " = ", "______"),
+				questionString(b3.Z, " - ", b3.B, " - ", b3.A, " = ", "______"),
+				questionString(b3.Z, " - ", b3.B, " - ", b3.C, " = ", "______"),
 			}
 		}
 
 		if b3.A != b3.B && b3.A == b3.C {
 			ret[QTypeNormal] = []string{
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.B, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.C, b3.B, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.B, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.B, b3.A, "______"),
+				questionString(b3.A, " + ", b3.B, " + ", b3.C, " = ", "______"),
+				questionString(b3.A, " + ", b3.C, " + ", b3.B, " = ", "______"),
+				questionString(b3.B, " + ", b3.A, " + ", b3.C, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.B, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.C, " = ", "______"),
+				questionString(b3.Z, " - ", b3.B, " - ", b3.A, " = ", "______"),
 			}
 		}
 
 		if b3.A == b3.B && b3.A != b3.C {
 			ret[QTypeNormal] = []string{
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.B, b3.C, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.A, b3.C, b3.B, "______"),
-				fmt.Sprintf("%2d + %2d + %2d = %6s", b3.C, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.B, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.A, b3.C, "______"),
-				fmt.Sprintf("%2d - %2d - %2d = %6s", b3.Z, b3.C, b3.A, "______"),
+				questionString(b3.A, " + ", b3.B, " + ", b3.C, " = ", "______"),
+				questionString(b3.A, " + ", b3.C, " + ", b3.B, " = ", "______"),
+				questionString(b3.C, " + ", b3.A, " + ", b3.B, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.B, " = ", "______"),
+				questionString(b3.Z, " - ", b3.A, " - ", b3.C, " = ", "______"),
+				questionString(b3.Z, " - ", b3.C, " - ", b3.A, " = ", "______"),
 			}
 		}
 	}
@@ -368,22 +394,27 @@ func generateB3Qs(max int) []*Bit3Question {
 	var b3qs []*Bit3Question
 	for i := 1; i < max; i++ {
 		for j := i; j < max; j++ {
-			if i+j > 20 {
+			if i+j > max {
 				break
 			}
 			for k := j; k < max; k++ {
-				if i+j+k > 20 {
+				if i+j+k > max {
 					break
 				}
 				b3qs = append(b3qs, &Bit3Question{A: i, B: j, C: k, Z: i + j + k})
 			}
 		}
 	}
+	_bit3Questions[max] = b3qs
 
 	return b3qs
 }
 
 func generateB3Questions(max int) map[QType][]string {
+	if b3Questions, ok := _bit3StringQuestions[max]; ok {
+		return b3Questions
+	}
+
 	b3qs := generateB3Qs(max)
 	b3Questions := make(map[QType][]string)
 	for _, b3q := range b3qs {
@@ -392,6 +423,7 @@ func generateB3Questions(max int) map[QType][]string {
 		b3Questions[QTypeAdvanced] = append(b3Questions[QTypeAdvanced], tmpQs[QTypeAdvanced]...)
 	}
 
+	_bit3StringQuestions[max] = b3Questions
 	return b3Questions
 }
 
